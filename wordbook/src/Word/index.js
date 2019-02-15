@@ -6,9 +6,12 @@ import { faVolumeUp } from '@fortawesome/free-solid-svg-icons';
 export default class Word extends Component {
   constructor (props) {
     super(props);
+    this.createUrl = this.createUrl.bind(this);
     this.playPhonetic = this.playPhonetic.bind(this);
+    this.phoneticRef = React.createRef();
     this.state = {
-      phonetics: []
+      phonetics: [],
+      url: ''
       // phonetics: [
       //   {
       //     mw: 'hasten',
@@ -21,19 +24,27 @@ export default class Word extends Component {
   }
   componentDidMount () {
     getPhonetic(this.props.definition.word)
-      .then(phoneticData => this.setState({ phonetics: phoneticData }));
+      .then(phoneticData => {
+        this.setState(prevState => ({ phonetics: phoneticData }));
+        return phoneticData;
+      })
+      .then(phoneticData => this.createUrl(phoneticData));
   }
 
   componentWillUnmount () {
     this.setState({ phonetics: [] });
   }
 
-  playPhonetic () {
-    const audioArr = this.state.phonetics.filter(phonetic => {
+  createUrl (phoneticData) {
+    const audioArr = phoneticData.filter(phonetic => {
       return phonetic.hasOwnProperty('sound');
     });
     const url = audioArr[0].sound.audioUrl;
-    const audio = new Audio(url);
+    return this.setState({ url: url });
+  }
+
+  playPhonetic () {
+    const audio = this.phoneticRef.current;
     audio.play();
   }
 
@@ -46,8 +57,9 @@ export default class Word extends Component {
           <div className='row'>
             <h3 className='mb-0 col-auto'>{definition.word}</h3>
             <p className='card-text mb-0 col-auto'>{definition.pos}</p>
-            <div className='pl-3 pr-3 clickable' onClick={this.playPhonetic}>
+            <div className='pl-3 pr-3 phonetic' onClick={this.playPhonetic}>
               <FontAwesomeIcon icon={faVolumeUp} />
+              <audio ref={this.phoneticRef} src={this.state.url} />
             </div>
             {/* follow display rules according to M-W */}
             \{this.state.phonetics.map(phonetic =>
